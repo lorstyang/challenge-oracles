@@ -88,7 +88,27 @@ contract WhitelistOracle {
      *      of remaining valid prices. Uses StatisticsUtils for sorting and median calculation.
      * @return The median price from all active oracles
      */
-    function getPrice() public view returns (uint256) {}
+    function getPrice() public view returns (uint256) {
+        if (0 == oracles.length) revert NoOraclesAvailable();
+
+        uint256[] memory prices = new uint256[](oracles.length);
+        uint256 validCount = 0;
+        for (uint256 i = 0; i < oracles.length; i++) {
+            (uint256 price, uint256 timestamp) = oracles[i].getPrice();
+            if (block.timestamp - timestamp < STALE_DATA_WINDOW) {
+                prices[validCount] = price;
+                validCount++;
+            }
+        }
+
+
+        uint256[] memory validPrices = new uint256[](validCount);
+        for (uint256 i = 0; i < validCount; i++) {
+            validPrices[i] = prices[i];
+        }
+        validPrices.sort();
+        return validPrices.getMedian();
+    }
 
     /**
      * @notice Returns the addresses of all oracles that have updated their price within the last STALE_DATA_WINDOW
