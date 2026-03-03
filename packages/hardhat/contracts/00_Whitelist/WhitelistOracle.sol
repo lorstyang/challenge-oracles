@@ -72,7 +72,15 @@ contract WhitelistOracle {
      *      Reverts with IndexOutOfBounds, if the provided index is >= oracles.length.
      * @param index The index of the oracle to remove from the oracles array
      */
-    function removeOracle(uint256 index) public onlyOwner {}
+    function removeOracle(uint256 index) public onlyOwner {
+        if (index >= oracles.length) revert IndexOutOfBounds();
+        
+        address removedAddress = address(oracles[index]);
+        if (index != oracles.length - 1) oracles[index] = oracles[oracles.length - 1];
+
+        oracles.pop();
+        emit OracleRemoved(removedAddress);
+    }
 
     /**
      * @notice Returns the aggregated price from all active oracles using median calculation
