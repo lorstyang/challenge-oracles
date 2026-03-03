@@ -117,5 +117,21 @@ contract WhitelistOracle {
      *      for gas optimization.
      * @return An array of addresses representing the currently active oracle contracts
      */
-    function getActiveOracleNodes() public view returns (address[] memory) {}
+    function getActiveOracleNodes() public view returns (address[] memory) {
+        address[] memory activeNodes = new address[](oracles.length);
+        uint256 activeCount = 0;
+        for (uint256 i = 0; i < oracles.length; i++) {
+            (, uint256 timestamp) = oracles[i].getPrice();
+            if (block.timestamp - timestamp < STALE_DATA_WINDOW) {
+                activeNodes[activeCount] = address(oracles[i]);
+                activeCount++;
+            }
+        }
+
+        address[] memory result = new address[](activeCount);
+        for (uint256 i = 0; i < activeCount; i++) {
+            result[i] = activeNodes[i];
+        }
+        return result;
+    }
 }
