@@ -60,7 +60,11 @@ contract WhitelistOracle {
      * @dev Creates a new SimpleOracle instance and adds it to the oracles array.
      * @param _owner The address that will own the newly created oracle and can update its price
      */
-    function addOracle(address _owner) public onlyOwner {}
+    function addOracle(address _owner) public onlyOwner {
+        SimpleOracle newOracle = new SimpleOracle(_owner);
+        oracles.push(newOracle);
+        emit OracleAdded(address(newOracle), _owner);
+    }
 
     /**
      * @notice Removes an oracle from the whitelist by its array index (only contract owner)
