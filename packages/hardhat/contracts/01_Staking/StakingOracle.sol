@@ -236,7 +236,23 @@ contract StakingOracle {
      * @notice Returns the effective stake accounting for inactivity penalties via missed buckets
      * @dev Effective stake = stakedAmount - (missedBuckets * INACTIVITY_PENALTY), floored at 0
      */
-    function getEffectiveStake(address nodeAddress) public view returns (uint256) {}
+    function getEffectiveStake(address nodeAddress) public view returns (uint256) {
+        OracleNode memory n = nodes[nodeAddress];
+        if (!n.active) return 0;
+        uint256 currentBucket = getCurrentBucketNumber();
+        uint256 expectedReports = currentBucket - n.firstBucket;
+        // Do not assume future reports; penalize only after a bucket has passed
+        uint256 actualReportsCompleted = n.reportCount;
+        // Exclude a report made in the current bucket from completed reports to avoid reducing past penalties
+        if (n.lastReportedBucket == currentBucket && actualReportsCompleted > 0) {
+            actualReportsCompleted -= 1;
+        }
+        if (actualReportsCompleted >= expectedReports) return n.stakedAmount; // no penalty if on target
+        uint256 missed = expectedReports - actualReportsCompleted;
+        uint256 penalty = missed * INACTIVITY_PENALTY;
+        if (penalty > n.stakedAmount) return 0;
+        return n.stakedAmount - penalty;
+    }
 
     /**
      * @notice Returns the addresses of nodes in a bucket whose reported price deviates beyond the threshold
