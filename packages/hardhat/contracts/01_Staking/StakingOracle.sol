@@ -209,7 +209,35 @@ contract StakingOracle {
         uint256 bucketNumber,
         uint256 reportIndex,
         uint256 nodeAddressesIndex
-    ) public {}
+    ) public {
+        if (!nodes[nodeToSlash].active) revert NodeNotRegistered();
+        if (getCurrentBucketNumber() <= bucketNumber) revert OnlyPastBucketsAllowed();
+        BlockBucket storage bucket = blockBuckets[bucketNumber];
+        if (bucket.medianPrice == 0) revert MedianNotRecorded();
+        if (bucket.slashedOffenses[nodeToSlash]) revert NodeAlreadySlashed();
+        if (reportIndex >= bucket.reporters.length) revert IndexOutOfBounds();
+        if (nodeToSlash != bucket.reporters[reportIndex]) revert NodeNotAtGivenIndex();
+        uint256 reportedPrice = bucket.prices[reportIndex];
+        if (0 == reportedPrice) revert NodeDidNotReport();
+        if (!_checkPriceDeviated(reportedPrice, bucket.medianPrice)) revert NotDeviated();
+        bucket.slashedOffenses[nodeToSlash] = true;
+        OracleNode storage node = nodes[nodeToSlash];
+        // Slash the node
+        uint256 actualPenalty = MISREPORT_PENALTY > node.stakedAmount ? node.stakedAmount : MISREPORT_PENALTY;
+        node.stakedAmount -= actualPenalty;
+
+        if (node.stakedAmount == 0) {
+            _removeNode(nodeToSlash, nodeAddressesIndex);
+            emit NodeExited(nodeToSlash, 0);
+        }
+
+        uint256 reward = (actualPenalty * SLASHER_REWARD_PERCENTAGE) / 100;
+
+        bool rewardSent = oracleToken.transfer(msg.sender, reward);
+        if (!rewardSent) revert TransferFailed();
+
+        emit NodeSlashed(nodeToSlash, actualPenalty);
+    }
 
     /**
      * @notice Allows a registered node to exit the system and withdraw their stake
