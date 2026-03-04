@@ -144,7 +144,16 @@ contract StakingOracle {
     /**
      * @notice Allows a registered node to increase its ORA token stake
      */
-    function addStake(uint256 amount) public onlyNode {}
+    function addStake(uint256 amount) public onlyNode {
+        if (0 == amount) revert InsufficientStake();
+
+        // Transfer ORA tokens from the node to the contract as additional stake
+        bool success = oracleToken.transferFrom(msg.sender, address(this), amount);
+        if (!success) revert TransferFailed();
+
+        nodes[msg.sender].stakedAmount += amount;
+        emit StakeAdded(msg.sender, amount);
+    }
 
     /**
      * @notice Records the median price for a bucket once sufficient reports are available
