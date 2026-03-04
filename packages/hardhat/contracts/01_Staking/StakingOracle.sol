@@ -297,7 +297,11 @@ contract StakingOracle {
      * @param bucketNumber The bucket number to read the median price from
      * @return The median price stored for the bucket
      */
-    function getPastPrice(uint256 bucketNumber) public view returns (uint256) {}
+    function getPastPrice(uint256 bucketNumber) public view returns (uint256) {
+        BlockBucket storage bucket = blockBuckets[bucketNumber];
+        if (0 == bucket.medianPrice) revert MedianNotRecorded();
+        return bucket.medianPrice;
+    }
 
     /**
      * @notice Returns the price and slashed status of a node at a given bucket
