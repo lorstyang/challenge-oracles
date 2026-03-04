@@ -350,7 +350,31 @@ contract StakingOracle {
      * @param bucketNumber The bucket number to get the outliers from
      * @return Array of node addresses considered outliers
      */
-    function getOutlierNodes(uint256 bucketNumber) public view returns (address[] memory) {}
+    function getOutlierNodes(uint256 bucketNumber) public view returns (address[] memory) {
+        BlockBucket storage bucket = blockBuckets[bucketNumber];
+        if (bucket.medianPrice == 0) revert MedianNotRecorded();
+
+        address[] memory outliers = new address[](bucket.reporters.length);
+        uint256 outlierCount = 0;
+
+        for (uint256 i = 0; i < bucket.reporters.length; i++) {
+            address reporter = bucket.reporters[i];
+            if (bucket.slashedOffenses[reporter]) continue;
+            uint256 reportedPrice = bucket.prices[i];
+            if (reportedPrice == 0) continue;
+
+            if (_checkPriceDeviated(reportedPrice, bucket.medianPrice)) {
+                outliers[outlierCount] = reporter;
+                outlierCount++;
+            }
+        }
+
+        address[] memory trimmed = new address[](outlierCount);
+        for (uint256 j = 0; j < outlierCount; j++) {
+            trimmed[j] = outliers[j];
+        }
+        return trimmed;
+    }
 
     //////////////////////////
     /// Internal Functions ///
