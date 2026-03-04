@@ -385,7 +385,15 @@ contract StakingOracle {
      * @param nodeAddress The address of the node to remove
      * @param index The index of the node to remove
      */
-    function _removeNode(address nodeAddress, uint256 index) internal {}
+    function _removeNode(address nodeAddress, uint256 index) internal {
+        if (nodeAddresses.length <= index) revert IndexOutOfBounds();
+        if (nodeAddresses[index] != nodeAddress) revert NodeNotAtGivenIndex();
+
+        nodeAddresses[index] = nodeAddresses[nodeAddresses.length - 1];
+        nodeAddresses.pop();
+
+        nodes[nodeAddress].active = false;
+    }
 
     /**
      * @notice Checks if the price deviation is greater than the threshold
