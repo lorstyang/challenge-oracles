@@ -286,7 +286,11 @@ contract StakingOracle {
      * @dev Requires that the median for the bucket be recorded via recordBucketMedian
      * @return The median price for the last finalized bucket
      */
-    function getLatestPrice() public view returns (uint256) {}
+    function getLatestPrice() public view returns (uint256) {
+        BlockBucket storage bucket = blockBuckets[getCurrentBucketNumber() - 1];
+        if (0 == bucket.medianPrice) revert MedianNotRecorded();
+        return bucket.medianPrice;
+    }
 
     /**
      * @notice Returns the stored median price from a specified bucket
