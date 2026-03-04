@@ -155,7 +155,16 @@ contract StakingOracle {
      * @notice Allows active and inactive nodes to claim accumulated ORA token rewards
      * @dev Calculates rewards based on time elapsed since last claim.
      */
-    function claimReward() public {}
+    function claimReward() public {
+        OracleNode storage node = nodes[msg.sender];
+        uint256 claimableReports = node.reportCount - node.claimedReportCount;
+        if (claimableReports == 0) revert NoRewardsAvailable();
+
+        node.claimedReportCount = node.reportCount;
+        uint256 rewardAmount = claimableReports * REWARD_PER_REPORT;
+        oracleToken.mint(msg.sender, rewardAmount);
+        emit NodeRewarded(msg.sender, rewardAmount);
+    }
 
     /**
      * @notice Allows a registered node to increase its ORA token stake
