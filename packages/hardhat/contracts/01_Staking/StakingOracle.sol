@@ -313,7 +313,15 @@ contract StakingOracle {
     function getSlashedStatus(
         address nodeAddress,
         uint256 bucketNumber
-    ) public view returns (uint256 price, bool slashed) {}
+    ) public view returns (uint256 price, bool slashed) {
+        BlockBucket storage bucket = blockBuckets[bucketNumber];
+        for (uint256 i = 0; i < bucket.reporters.length; i++) {
+            if (bucket.reporters[i] == nodeAddress) {
+                price = bucket.prices[i];
+                slashed = bucket.slashedOffenses[nodeAddress];
+            }
+        }
+    }
 
     /**
      * @notice Returns the effective stake accounting for inactivity penalties via missed buckets
