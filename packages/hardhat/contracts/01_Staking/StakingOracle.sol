@@ -105,7 +105,26 @@ contract StakingOracle {
      * @dev Creates a new OracleNode struct and adds the sender to the nodeAddresses array.
      *      Requires minimum stake amount and prevents duplicate registrations.
      */
-    function registerNode(uint256 amount) public {}
+    function registerNode(uint256 amount) public {
+        if (nodes[msg.sender].active) revert NodeAlreadyRegistered();
+        if (amount < MINIMUM_STAKE) revert InsufficientStake();
+
+        // Transfer ORA tokens from the node to the contract as stake
+        bool success = oracleToken.transferFrom(msg.sender, address(this), amount);
+        if (!success) revert TransferFailed();
+
+        nodes[msg.sender] = OracleNode({
+            stakedAmount: amount,
+            lastReportedBucket: 0,
+            reportCount: 0,
+            claimedReportCount: 0,
+            firstBucket: getCurrentBucketNumber(),
+            active: true
+        });
+
+        nodeAddresses.push(msg.sender);
+        emit NodeRegistered(msg.sender, amount);
+    }
 
     /**
      * @notice Updates the price reported by an oracle node (only registered nodes)
@@ -174,7 +193,9 @@ contract StakingOracle {
      * @notice Returns the list of registered oracle node addresses
      * @return Array of registered oracle node addresses
      */
-    function getNodeAddresses() public view returns (address[] memory) {}
+    function getNodeAddresses() public view returns (address[] memory) {
+        return nodeAddresses;
+    }
 
     /**
      * @notice Returns the stored median price from the most recently completed bucket
