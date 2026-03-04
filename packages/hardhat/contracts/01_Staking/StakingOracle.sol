@@ -133,7 +133,23 @@ contract StakingOracle {
      *      This creates a chain of finalized buckets, ensuring all past reports are accountable.
      * @param price The new price value to report
      */
-    function reportPrice(uint256 price) public onlyNode {}
+    function reportPrice(uint256 price) public onlyNode {
+        if (0 == price) revert InvalidPrice();
+        if (getEffectiveStake(msg.sender) < MINIMUM_STAKE) revert InsufficientStake();
+
+        OracleNode storage node = nodes[msg.sender];
+        uint256 currentBucket = getCurrentBucketNumber();
+        if (node.lastReportedBucket == currentBucket) revert AlreadyReportedInCurrentBucket();
+
+        BlockBucket storage bucket = blockBuckets[currentBucket];
+        bucket.reporters.push(msg.sender);
+        bucket.prices.push(price);
+
+        node.lastReportedBucket = currentBucket;
+        node.reportCount++;
+
+        emit PriceReported(msg.sender, price, currentBucket);
+    }
 
     /**
      * @notice Allows active and inactive nodes to claim accumulated ORA token rewards
