@@ -246,7 +246,19 @@ contract StakingOracle {
      *      node has been slashed if it reported a bad price before allowing it to exit.
      * @param index The index of the node to remove in nodeAddresses
      */
-    function exitNode(uint256 index) public onlyNode {}
+    function exitNode(uint256 index) public onlyNode {
+        OracleNode storage node = nodes[msg.sender];
+        if (node.lastReportedBucket + WAITING_PERIOD > getCurrentBucketNumber()) revert WaitingPeriodNotOver();
+        // Get effective stake before removing node (since getEffectiveStake returns 0 for inactive nodes)
+        uint256 stake = getEffectiveStake(msg.sender);
+        _removeNode(msg.sender, index);
+        // Withdraw the stake
+        nodes[msg.sender].stakedAmount = 0;
+        bool success = oracleToken.transfer(msg.sender, stake);
+        if (!success) revert TransferFailed();
+
+        emit NodeExited(msg.sender, stake);
+    }
 
     ////////////////////////
     /// View Functions /////
