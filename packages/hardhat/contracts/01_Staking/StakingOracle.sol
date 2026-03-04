@@ -185,7 +185,17 @@ contract StakingOracle {
      * @dev Anyone who uses the oracle's price feed can call this function to record the median price for a bucket.
      * @param bucketNumber The bucket number to finalize
      */
-    function recordBucketMedian(uint256 bucketNumber) public {}
+    function recordBucketMedian(uint256 bucketNumber) public {
+        BlockBucket storage bucket = blockBuckets[bucketNumber];
+        if (bucket.medianPrice != 0) revert BucketMedianAlreadyRecorded();
+        if (bucketNumber >= getCurrentBucketNumber()) revert OnlyPastBucketsAllowed();
+
+        uint256[] memory prices = bucket.prices;
+        prices.sort();
+        bucket.medianPrice = prices.getMedian();
+
+        emit BucketMedianRecorded(bucketNumber, bucket.medianPrice);
+    }
 
     /**
      * @notice Slashes a node for giving a price that is deviated too far from the average
