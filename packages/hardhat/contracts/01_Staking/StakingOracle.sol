@@ -401,5 +401,9 @@ contract StakingOracle {
      * @param medianPrice The average price of the bucket
      * @return True if the price deviation is greater than the threshold, false otherwise
      */
-    function _checkPriceDeviated(uint256 reportedPrice, uint256 medianPrice) internal pure returns (bool) {}
+    function _checkPriceDeviated(uint256 reportedPrice, uint256 medianPrice) internal pure returns (bool) {
+        uint256 deviation = reportedPrice > medianPrice ? reportedPrice - medianPrice : medianPrice - reportedPrice;
+        uint256 deviationBps = (deviation * 10_000) / medianPrice;
+        return deviationBps > MAX_DEVIATION_BPS;
+    }
 }
