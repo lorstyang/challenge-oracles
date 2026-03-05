@@ -141,7 +141,40 @@ contract OptimisticOracle {
         string memory description,
         uint256 startTime,
         uint256 endTime
-    ) external payable returns (uint256) {}
+    ) external payable returns (uint256) {
+        uint256 assertionId = nextAssertionId;
+        nextAssertionId++;
+        if (msg.value == 0) revert InvalidValue();
+
+        // Set default times if not provided
+        if (startTime == 0) {
+            startTime = block.timestamp;
+        }
+        if (endTime == 0) {
+            endTime = startTime + MINIMUM_ASSERTION_WINDOW;
+        }
+
+        if (startTime < block.timestamp) revert InvalidTime();
+        if (endTime < startTime + MINIMUM_ASSERTION_WINDOW) revert InvalidTime();
+
+        assertions[assertionId] = EventAssertion({
+            asserter: msg.sender,
+            proposer: address(0),
+            disputer: address(0),
+            proposedOutcome: false,
+            resolvedOutcome: false,
+            reward: msg.value,
+            bond: msg.value * 2,
+            startTime: startTime,
+            endTime: endTime,
+            claimed: false,
+            winner: address(0),
+            description: description
+        });
+
+        emit EventAsserted(assertionId, msg.sender, description, msg.value);
+        return assertionId;
+    }
 
     /**
      * @notice Proposes the outcome (true or false) for an asserted event
