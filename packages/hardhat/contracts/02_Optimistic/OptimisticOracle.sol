@@ -203,7 +203,17 @@ contract OptimisticOracle {
      *      and must be within the dispute window after proposal.
      * @param assertionId The unique identifier of the assertion to dispute
      */
-    function disputeOutcome(uint256 assertionId) external payable {}
+    function disputeOutcome(uint256 assertionId) external payable {
+        EventAssertion storage assertion = assertions[assertionId];
+        if (assertion.asserter == address(0)) revert NotProposedAssertion();
+        if (assertion.disputer != address(0)) revert ProposalDisputed();
+        if (msg.value != assertion.bond) revert InvalidValue();
+        if (block.timestamp > assertion.endTime) revert InvalidTime();
+
+        assertion.disputer = msg.sender;
+
+        emit OutcomeDisputed(assertionId, msg.sender);
+    }
 
     /**
      * @notice Claims reward for undisputed assertions after dispute window expires
