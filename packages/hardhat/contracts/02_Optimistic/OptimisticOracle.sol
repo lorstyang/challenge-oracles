@@ -244,7 +244,26 @@ contract OptimisticOracle {
      *      Can only be called after decider has settled the dispute.
      * @param assertionId The unique identifier of the disputed assertion to claim rewards for
      */
-    function claimDisputedReward(uint256 assertionId) external {}
+    function claimDisputedReward(uint256 assertionId) external {
+        EventAssertion storage assertion = assertions[assertionId];
+
+        if (assertion.proposer == address(0)) revert NotProposedAssertion();
+        if (assertion.disputer == address(0)) revert NotDisputedAssertion();
+        if (assertion.winner == address(0)) revert AwaitingDecider();
+        if (assertion.claimed) revert AlreadyClaimed();
+
+        assertion.claimed = true;
+
+        (bool deciderSuccess, ) = payable(decider).call{value: assertion.bond}("");
+        if (!deciderSuccess) revert TransferFailed();
+        
+        uint256 totalReward = assertion.reward + assertion.bond;
+
+        (bool winnerSuccess, ) = payable(assertion.winner).call{value: totalReward}("");
+        if (!winnerSuccess) revert TransferFailed();
+
+        emit RewardClaimed(assertionId, assertion.winner, totalReward);
+    }
 
     /**
      * @notice Claims refund for assertions that receive no proposals before deadline
