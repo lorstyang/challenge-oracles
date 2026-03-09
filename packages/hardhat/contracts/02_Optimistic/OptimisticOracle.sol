@@ -271,7 +271,20 @@ contract OptimisticOracle {
      *      Can only be called after assertion deadline has passed without any proposals.
      * @param assertionId The unique identifier of the expired assertion to claim refund for
      */
-    function claimRefund(uint256 assertionId) external {}
+    function claimRefund(uint256 assertionId) external {
+        EventAssertion storage assertion = assertions[assertionId];
+
+        if (assertion.proposer != address(0)) revert AssertionProposed();
+        if (block.timestamp <= assertion.endTime) revert InvalidTime();
+        if (assertion.claimed) revert AlreadyClaimed();
+
+        assertion.claimed = true;
+
+        (bool refundSuccess, ) = payable(assertion.asserter).call{value: assertion.reward}("");
+        if (!refundSuccess) revert TransferFailed();
+        
+        emit RefundClaimed(assertionId, assertion.asserter, assertion.reward);
+    }
 
     /**
      * @notice Resolves disputed assertions by determining the correct outcome (only decider)
