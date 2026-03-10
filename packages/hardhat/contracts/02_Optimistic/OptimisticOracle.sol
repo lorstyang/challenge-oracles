@@ -292,7 +292,18 @@ contract OptimisticOracle {
      * @param assertionId The unique identifier of the disputed assertion to settle
      * @param resolvedOutcome The decider's determination of the true outcome
      */
-    function settleAssertion(uint256 assertionId, bool resolvedOutcome) external onlyDecider {}
+    function settleAssertion(uint256 assertionId, bool resolvedOutcome) external onlyDecider {
+        EventAssertion storage assertion = assertions[assertionId];
+        if (assertion.proposer == address(0)) revert NotProposedAssertion();
+        if (assertion.disputer == address(0)) revert NotDisputedAssertion();
+        if (assertion.winner != address(0)) revert AlreadySettled();
+        
+        assertion.resolvedOutcome = resolvedOutcome;
+        address winnner = (assertion.proposedOutcome == resolvedOutcome) ? assertion.proposer : assertion.disputer;
+        assertion.winner = winnner;
+
+        emit AssertionSettled(assertionId, resolvedOutcome, winnner);
+    }
 
     /**
      * @notice Returns the current state of an assertion based on its lifecycle stage
