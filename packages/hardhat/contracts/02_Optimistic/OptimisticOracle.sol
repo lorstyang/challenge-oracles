@@ -223,9 +223,9 @@ contract OptimisticOracle {
      */
     function claimUndisputedReward(uint256 assertionId) external {
         EventAssertion storage assertion = assertions[assertionId];
-        if (assertion.asserter == address(0)) revert NotProposedAssertion();
+        if (assertion.proposer == address(0)) revert NotProposedAssertion();
         if (assertion.disputer != address(0)) revert ProposalDisputed();
-        if (block.timestamp < assertion.startTime || block.timestamp > assertion.endTime) revert InvalidTime();
+        if (block.timestamp <= assertion.endTime) revert InvalidTime();
         if (assertion.claimed) revert AlreadyClaimed();
 
         assertion.claimed = true;
