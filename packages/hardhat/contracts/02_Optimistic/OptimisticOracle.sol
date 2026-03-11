@@ -354,7 +354,7 @@ contract OptimisticOracle {
         else {
             // 感觉这里有问题，时间超过了也要等吗
             if (a.winner == address(0)) revert AwaitingDecider();
-            return a.resolvedOutcome;;
+            return a.resolvedOutcome;
         }
     }
 }
