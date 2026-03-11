@@ -342,5 +342,19 @@ contract OptimisticOracle {
      * @param assertionId The unique identifier of the assertion to get resolution for
      * @return The final boolean outcome of the assertion
      */
-    function getResolution(uint256 assertionId) external view returns (bool) {}
+    function getResolution(uint256 assertionId) external view returns (bool) {
+        EventAssertion storage a = assertions[assertionId];
+        if (a.asserter == address(0)) revert AssertionNotFound();
+        if (a.proposer == address(0)) revert NotProposedAssertion();
+
+        if (a.disputer == address(0)) {
+            if (block.timestamp <= a.endTime) revert InvalidTime();
+            return a.proposedOutcome;
+        }
+        else {
+            // 感觉这里有问题，时间超过了也要等吗
+            if (a.winner == address(0)) revert AwaitingDecider();
+            return a.resolvedOutcome;
+        }
+    }
 }
