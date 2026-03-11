@@ -311,7 +311,29 @@ contract OptimisticOracle {
      * @param assertionId The unique identifier of the assertion to check state for
      * @return The current State enum value representing the assertion's status
      */
-    function getState(uint256 assertionId) external view returns (State) {}
+    function getState(uint256 assertionId) external view returns (State) {
+        EventAssertion storage a = assertions[assertionId];
+
+        if (a.asserter == address(0)) return State.Invalid;
+        
+        // If there's a winner, it's settled
+        if (a.winner != address(0)) return State.Settled;
+        
+        // If there's a dispute, it's disputed
+        if (a.disputer != address(0)) return State.Disputed;
+        
+        // If no proposal yet, check if deadline has passed
+        if (a.proposer == address(0)) {
+            if (block.timestamp > a.endTime) return State.Expired;
+            return State.Asserted;
+        }
+        
+        // If no dispute and deadline passed, it's settled (can be claimed)
+        if (block.timestamp > a.endTime) return State.Settled;
+        
+        // Otherwise it's proposed
+        return State.Proposed;
+    }
 
     /**
      * @notice Returns the final resolved outcome of a settled assertion
